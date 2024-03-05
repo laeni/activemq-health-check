@@ -9,6 +9,7 @@
 ```
 
 | 参数 | 说明 |
+| --- | --- |
 | host | ActiveMQ 的主机名或 IP 地址 |
 | port | ActiveMQ 的端口 |
 | queueName | 用于健康检查的测试队列名，检查时会发送一条随机字符串到到此队列，然后检查队列中是否存在消息，所以需要使用一个临时队列 |
@@ -16,5 +17,8 @@
 示例：
 
 ```shell
-./activemq-health-check --host 127.0.0.1 --port 61613 --queue zabbix.health
+$ ./activemq-health-check --host 10.10.1.1 --port 61613 --queue zabbix.health
+2024/03/05 23:59:09 /home/xxx/activemq-health-check/cmd/root.go:73: [I] - 连接到 ActiveMQ 服务器成功: 10.10.1.1:61613
+2024/03/05 23:59:09 /home/xxx/activemq-health-check/cmd/root.go:86: [I] - 发送消息到 ActiveMQ 队列成功！
+2024/03/05 23:59:09 /home/xxx/activemq-health-check/cmd/root.go:104: [I] - ActiveMQ 健康检查通过！
 ```
