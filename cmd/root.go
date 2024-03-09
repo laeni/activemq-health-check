@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/go-stomp/stomp/v3"
+	"github.com/go-stomp/stomp/v3/frame"
 	"github.com/spf13/cobra"
 	"log"
 	"math/rand"
@@ -39,9 +40,12 @@ func Execute() {
 }
 
 var (
-	host  string // Active Mq 服务器主机名
-	port  string // Active Mq 服务器端口
-	queue string // 用于测试的队列名
+	host       string // Active Mq 服务器主机名
+	port       string // Active Mq 服务器端口
+	username   string // Active Mq 用户名（可选）
+	password   string // Active Mq 密码（可选）
+	queue      string // 用于测试的队列名
+	persistent bool   // 发送的消息是否需要持久化
 )
 
 var (
@@ -56,7 +60,10 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&host, "host", "", "", "主机名")
 	rootCmd.PersistentFlags().StringVarP(&port, "port", "", "", "端口")
+	rootCmd.PersistentFlags().StringVarP(&username, "username", "", "", "连接 MQ 服务器的用户名（可选）")
+	rootCmd.PersistentFlags().StringVarP(&password, "password", "", "", "连接 MQ 服务器的密码（可选）")
 	rootCmd.PersistentFlags().StringVarP(&queue, "queue", "", "", "队列名")
+	rootCmd.PersistentFlags().BoolVarP(&persistent, "persistent", "", false, "发送的消息是否需要持久化。由于作为健康检查，默认情况下消息不会持久化")
 
 	// Cobra 还支持本地标志，这些标志仅在直接调用此操作时运行。
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -64,7 +71,7 @@ func init() {
 
 func run(*cobra.Command, []string) {
 	// 连接到 ActiveMQ 服务器
-	stompConn, err := stomp.Dial("tcp", net.JoinHostPort(host, port), stomp.ConnOpt.AcceptVersion(stomp.V11))
+	stompConn, err := stomp.Dial("tcp", net.JoinHostPort(host, port), stomp.ConnOpt.Login(username, password))
 	if err != nil {
 		logError.Println("连接到 ActiveMQ 服务器失败: " + err.Error())
 		os.Exit(1)
@@ -79,7 +86,14 @@ func run(*cobra.Command, []string) {
 	random := strconv.Itoa(rand.Int())
 
 	// 将消息发送到 ActiveMQ 中
-	err = stompConn.Send(queue, "text/plain", []byte(random))
+	opts := make([]func(*frame.Frame) error, 0)
+	if persistent {
+		opts = append(opts, func(f *frame.Frame) error {
+			f.Header.Set("persistent", "true")
+			return nil
+		})
+	}
+	err = stompConn.Send(queue, "text/plain", []byte(random), opts...)
 	if err != nil {
 		logError.Println("发送消息到 ActiveMQ 失败: " + err.Error())
 	}
