@@ -69,7 +69,12 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func run(*cobra.Command, []string) {
+func run(cmd *cobra.Command, _ []string) {
+	if host == "" || port == "" {
+		cmd.Help()
+		os.Exit(1)
+	}
+
 	// 连接到 ActiveMQ 服务器
 	stompConn, err := stomp.Dial("tcp", net.JoinHostPort(host, port), stomp.ConnOpt.Login(username, password))
 	if err != nil {
